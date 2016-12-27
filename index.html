@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link href="style.css" rel="stylesheet"/>
+    <meta charset=utf-8/>
+    <meta name="viewport"
+          content="user-scalable=no, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, minimal-ui">
+    <title>Turing machine simulator</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" href="http://cdn.jsdelivr.net/qtip2/3.0.3/jquery.qtip.min.css">
+</head>
+
+<body>
+
+<div class="container-fluid">
+    <div id="header" class="row content">
+        <div class="col-xs-4"></div>
+        <div class="col-xs-4">
+            <h3>Turing machine simulator</h3>
+            <ul>
+                <li>Click and hold background to create a new node</li>
+                <li>Click and hold node to create a self-edge</li>
+                <li>Click the edge/node to change its properties</li>
+                <li>Hold ctrl/shift and select two nodes to create an edge</li>
+                <li>Scroll to zoom</li>
+            </ul>
+        </div>
+        <div class="col-xs-4"></div>
+    </div>
+
+    <div id="cyrow" class="row">
+        <div class="col-xs-1"></div>
+        <div id="cy" class="col-xs-10"></div>
+        <div class="col-xs-1"></div>
+    </div>
+
+
+    <div id="controls" class="row">
+        <div class="row">
+            <div class="col-xs-4"></div>
+            <div class="col-xs-4">
+                <button id="start-button" type="button" class="btn btn-default">Start</button>
+                <button id="pause-button" type="button" class="btn btn-default">Pause</button>
+                <button id="step-button" type="button" class="btn btn-default">Step</button>
+                <button id="reset-button" type="button" class="btn btn-default">Reset</button>
+
+            </div>
+            <div class="col-xs-4"></div>
+        </div>
+
+        <div class="row">
+            <div class="col-xs-4"></div>
+            <div class="col-xs-4">
+                <label for="speed-controller">Simulation speed:</label>
+                <input type="range" id="speed-controller" min="1" max="10">
+            </div>
+            <div class="col-xs-4"></div>
+        </div>
+
+        <div class="row">
+            <div class="col-xs-4"></div>
+            <div class="col-xs-4">
+                <label for="tape-input">Input:</label>
+                <input type="text" id="tape-input" size="30" class="form-control">
+            </div>
+            <div class="col-xs-4"></div>
+        </div>
+
+        <div class="row">
+            <div class="col-xs-4"></div>
+            <div id="tape-peek" class="col-xs-4">
+            </div>
+            <div class="col-xs-4"></div>
+        </div>
+
+        <div class="row">
+            <div class="col-xs-4"></div>
+            <div class="col-xs-4">
+                <p id="accept-message" style="display: none; color: red;">ACCEPTED</p>
+            </div>
+            <div class="col-xs-4"></div>
+        </div>
+    </div>
+
+
+    <div id="qtip-node-template" style="display: none;">
+        <div>
+            <label for="node-name">Label:</label>
+            <input id="node-name" type="text">
+        </div>
+        <div>
+            <label for="node-accepting">Accepting:</label>
+            <input id="node-accepting" type="checkbox" name="accepting">
+        </div>
+        <div>
+            <button id="delete-node">Delete</button>
+        </div>
+    </div>
+
+    <div id="qtip-edge-template" style="display: none;">
+        <div>
+            <label for="edge-direction">Direction:</label>
+            <select id="edge-direction">
+                <option value="L">L</option>
+                <option value="R">R</option>
+            </select>
+        </div>
+        <div>
+            <label for="edge-symbol">Symbol:</label>
+            <select id="edge-symbol">
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value=" ">&epsilon;</option>
+            </select>
+        </div>
+        <div>
+            <button id="delete-edge">Delete</button>
+        </div>
+    </div>
+
+    <script src="http://cytoscape.github.io/cytoscape.js/api/cytoscape.js-latest/cytoscape.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script src="http://cdn.jsdelivr.net/qtip2/3.0.3/jquery.qtip.min.js"></script>
+    <script src="https://cdn.rawgit.com/cytoscape/cytoscape.js-qtip/2.2.5/cytoscape-qtip.js"></script>
+    <script src="code.js"></script>
+</div>
+
+</body>
+</html>
