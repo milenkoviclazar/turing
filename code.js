@@ -65,12 +65,15 @@ var cy = cytoscape({
     }
 });
 
+var newId = cy.$('node').size();
+
 // create node on long background tap
 cy.on('taphold', function (e) {
     if (e.cyTarget !== cy) {
         return;
     }
-    var id = '' + cy.$('node').size() + '';
+    var id = '' + newId;
+    newId++;
     var newNode = cy.add({
         group: "nodes",
         data: {id: id, label: '', accepting: 'false'},
