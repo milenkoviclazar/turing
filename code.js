@@ -1,6 +1,3 @@
-// TODO: add code editor
-// TODO: add boxes to create blocks
-
 var cy = cytoscape({
     container: document.querySelector('#cy'),
 
@@ -11,9 +8,7 @@ var cy = cytoscape({
         .selector('node')
         .css({
             'content': 'data(label)',
-            'shape': function (ele) {
-                return (ele.data('accepting') === 'true') ? 'octagon' : 'ellipse';
-            },
+            'shape': 'ellipse',
             'text-valign': 'center',
             'color': '#000',
             'background-color': '#999',
@@ -45,14 +40,9 @@ var cy = cytoscape({
         }),
 
     elements: {
-        nodes: [{
-            // TODO: what should be the shape of the first element if it's accepting?
-            data: {id: '0', label: 'q0', accepting: 'false'},
-            grabbable: false,
-            css: {
-                'shape': 'rectangle'
-            }
-        },
+        nodes: [
+            // TODO: when re-adding the initial state, its ID should be '0'
+            {data: {id: '0', label: 'q0', accepting: 'false'}},
             {data: {id: '1', label: 'q1', accepting: 'false'}}
         ],
         edges: [
@@ -64,6 +54,12 @@ var cy = cytoscape({
         padding: 30
     }
 });
+// TODO: add code editor
+// TODO: add boxes to create blocks
+// TODO: add crossing symbol
+// TODO: allow only one accepting state
+// TODO: add one rejecting state
+// TODO: add written symbol to every edge
 
 var newId = cy.$('node').size();
 
@@ -164,7 +160,6 @@ function setNodeQtip(node) {
                         node.data()['label'] = this.value;
                         node.toggleClass('foo');
                     });
-                /// TODO: focus the textfield when qtip is shown
                 var accepting = node.data('accepting') === 'true';
                 $('#node-accepting-' + id)
                     .prop('checked', accepting)
@@ -178,17 +173,20 @@ function setNodeQtip(node) {
                         $(".qtip").qtip('hide');
                         cy.elements().unselect();
                     });
+            },
+            visible: function (event, api) {
+                $('#node-name-' + node.id()).focus();
             }
         }
     });
 }
 
-function setEdgeQtip(e) {
+function setEdgeQtip(edge) {
     var template = $('#qtip-edge-template').clone();
-    template.find('#edge-symbol').prop('id', 'edge-symbol-' + e.id());
-    template.find('#edge-direction').prop('id', 'edge-direction-' + e.id());
-    template.find('#delete-edge').prop('id', 'delete-edge-' + e.id());
-    e.qtip({
+    template.find('#edge-symbol').prop('id', 'edge-symbol-' + edge.id());
+    template.find('#edge-direction').prop('id', 'edge-direction-' + edge.id());
+    template.find('#delete-edge').prop('id', 'delete-edge-' + edge.id());
+    edge.qtip({
         content: template.html(),
         position: {
             my: 'bottom center',
@@ -199,8 +197,7 @@ function setEdgeQtip(e) {
         },
         events: {
             render: function (event, api) {
-                var id = e.id();
-                var edge = cy.$('#' + id);
+                var id = edge.id();
                 $('#edge-direction-' + id)
                     .val(edge.data('direction'))
                     .change(function () {
@@ -219,6 +216,9 @@ function setEdgeQtip(e) {
                         $(".qtip").qtip('hide');
                         cy.elements().unselect();
                     });
+            },
+            visible: function (event, api) {
+                $('#edge-direction-' + edge.id()).focus();
             }
         }
     });
@@ -232,6 +232,7 @@ $(document).keydown(function (e) {
 
 var intervalID = -1;
 
+// TODO: disable reset when simulation is running
 $('#start-button').click(function () {
     var timeout = 2000 / $('#speed-controller').val();
     console.log(timeout);
@@ -293,6 +294,7 @@ Simulation = {
     },
     currNode: null,
     init: function () {
+        // TODO: what to do with simulation when the initial state is deleted?
         this.currNode = cy.$('#0');
         this.tape.content = document.getElementById('tape-input').value;
         this.tape.render();
