@@ -121,9 +121,10 @@ cy.edges().forEach(function (e) {
 });
 
 function createEdge(sourceNode, targetNode) {
-    var outgoingEdges = sourceNode.edgesTo(targetNode);
+    var outgoingEdges = sourceNode.outgoers('edge');
+
+    // this is to prevent nondeterminism
     if (outgoingEdges.length == 3) {
-        // this is to prevent nondeterminism
         return;
     }
     var possibleSymbols = [' ', '0', '1'];
@@ -131,6 +132,8 @@ function createEdge(sourceNode, targetNode) {
         var idx = possibleSymbols.indexOf(outgoingEdges[i].data('symbol'));
         possibleSymbols.splice(idx, 1);
     }
+
+
     var newEdge = cy.add({
         data: {source: sourceNode.id(), target: targetNode.id(), symbol: possibleSymbols[0], direction: 'L'}
     });
