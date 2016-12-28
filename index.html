@@ -39,11 +39,9 @@
         <div class="row">
             <div class="col-xs-4"></div>
             <div class="col-xs-4">
-                <button id="start-button" type="button" class="btn btn-default">Start</button>
-                <button id="pause-button" type="button" class="btn btn-default">Pause</button>
-                <button id="step-button" type="button" class="btn btn-default">Step</button>
-                <button id="reset-button" type="button" class="btn btn-default">Reset</button>
-
+                <button id="start-button" type="button" class="btn btn-default ctrl"><span class="glyphicon glyphicon-play"></span></button>
+                <button id="step-button" type="button" class="btn btn-default ctrl">Step</button>
+                <button id="reset-button" type="button" class="btn btn-default ctrl">Reset</button>
             </div>
             <div class="col-xs-4"></div>
         </div>
@@ -52,7 +50,7 @@
             <div class="col-xs-4"></div>
             <div class="col-xs-4">
                 <label for="speed-controller">Simulation speed:</label>
-                <input type="range" id="speed-controller" min="1" max="10">
+                <input type="range" id="speed-controller" min="1" max="10" class="ctrl">
             </div>
             <div class="col-xs-4"></div>
         </div>
@@ -61,7 +59,7 @@
             <div class="col-xs-4"></div>
             <div class="col-xs-4">
                 <label for="tape-input">Input:</label>
-                <input type="text" id="tape-input" size="30" class="form-control">
+                <input type="text" id="tape-input" size="30" class="form-control ctrl">
             </div>
             <div class="col-xs-4"></div>
         </div>
@@ -89,8 +87,12 @@
             <input id="node-name" type="text">
         </div>
         <div>
-            <label for="node-accepting">Accepting:</label>
-            <input id="node-accepting" type="checkbox" name="accepting">
+            <label for="node-type">Node type:</label>
+            <select id="node-type">
+                <option value="normal">normal</option>
+                <option value="start">start</option>
+                <option value="accept">accept</option>
+            </select>
         </div>
         <div>
             <button id="delete-node">Delete</button>
@@ -99,18 +101,28 @@
 
     <div id="qtip-edge-template" style="display: none;">
         <div>
+            <label for="edge-input-symbol">Input symbol:</label>
+            <select id="edge-input-symbol">
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="_">_</option>
+                <option value="x">x</option>
+            </select>
+        </div>
+        <div>
+            <label for="edge-output-symbol">Output symbol:</label>
+            <select id="edge-output-symbol">
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="_">_</option>
+                <option value="x">x</option>
+            </select>
+        </div>
+        <div>
             <label for="edge-direction">Direction:</label>
             <select id="edge-direction">
                 <option value="L">L</option>
                 <option value="R">R</option>
-            </select>
-        </div>
-        <div>
-            <label for="edge-symbol">Symbol:</label>
-            <select id="edge-symbol">
-                <option value="0">0</option>
-                <option value="1">1</option>
-                <option value=" ">&epsilon;</option>
             </select>
         </div>
         <div>

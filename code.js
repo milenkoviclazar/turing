@@ -17,7 +17,7 @@ var cy = cytoscape({
         .selector('edge')
         .css({
             'label': function (ele) {
-                return "(" + "'" + ele.data('symbol') + "'" + ", " + ele.data('direction') + ")"
+                return "(" + ele.data('in') + " -> " + ele.data('out') + ", " + ele.data('direction') + ")"
             },
             'font-size': 10,
             'text-rotation': 'autorotate',
@@ -34,6 +34,15 @@ var cy = cytoscape({
             'transition-property': 'background-color',
             'transition-duration': '100'
         })
+        .selector('node[type="start"]')
+        .css({
+            'shape': 'triangle'
+        })
+        .selector('node[type="accept"]')
+        .css({
+            // TODO: fix them styles
+            'shape': 'octagon'
+        })
         .selector(':selected')
         .css({
             'border-width': '2'
@@ -41,12 +50,19 @@ var cy = cytoscape({
 
     elements: {
         nodes: [
-            // TODO: when re-adding the initial state, its ID should be '0'
-            {data: {id: '0', label: 'q0', accepting: 'false'}},
-            {data: {id: '1', label: 'q1', accepting: 'false'}}
+            {data: {id: '0', label: 'q0', type: 'start'}},
+            {data: {id: '1', label: 'q1', type: 'normal'}},
+            {data: {id: '2', label: 'q2', type: 'normal'}},
+            {data: {id: '3', label: 'q3', type: 'normal'}},
+            {data: {id: '4', label: 'q4', type: 'normal'}},
+            {data: {id: '5', label: 'q5', type: 'accept'}},
         ],
         edges: [
-            {data: {source: '0', target: '1', symbol: '0', direction: 'R'}}
+            {data: {source: '0', target: '1', in: '0', out: '0', direction: 'R'}},
+            {data: {source: '1', target: '2', in: '0', out: '0', direction: 'R'}},
+            {data: {source: '2', target: '3', in: '0', out: '0', direction: 'R'}},
+            {data: {source: '3', target: '4', in: '0', out: '0', direction: 'R'}},
+            {data: {source: '4', target: '5', in: '0', out: '0', direction: 'R'}}
         ]
     },
     layout: {
@@ -54,12 +70,6 @@ var cy = cytoscape({
         padding: 30
     }
 });
-// TODO: add code editor
-// TODO: add boxes to create blocks
-// TODO: add crossing symbol
-// TODO: allow only one accepting state
-// TODO: add one rejecting state
-// TODO: add written symbol to every edge
 
 var newId = cy.$('node').size();
 
@@ -72,7 +82,7 @@ cy.on('taphold', function (e) {
     newId++;
     var newNode = cy.add({
         group: "nodes",
-        data: {id: id, label: '', accepting: 'false'},
+        data: {id: id, label: '', type: 'normal'},
         position: {x: e.cyPosition.x, y: e.cyPosition.y}
     });
     setNodeQtip(newNode);
@@ -95,12 +105,12 @@ cy.on('taphold', 'node', function (e) {
 // create edge when second node is selected
 cy.on('select', 'node', function (e) {
     var selection = cy.$(':selected');
-    if (selection.size() != 2) {
+    if (selection.size() !== 2) {
         return;
     }
     var sourceNode = selection[0];
     var targetNode = selection[1];
-    if (targetNode.id() != e.cyTarget.id()) {
+    if (targetNode.id() !== e.cyTarget.id()) {
         var t = sourceNode;
         sourceNode = targetNode;
         targetNode = t;
@@ -117,22 +127,22 @@ cy.edges().forEach(function (e) {
     setEdgeQtip(e);
 });
 
-function createEdge(sourceNode, targetNode) {
-    var outgoingEdges = sourceNode.outgoers('edge');
+function getAvailableSymbols(node) {
+    var outgoingEdges = node.outgoers('edge');
+    var possibleSymbols = ['_', 'x', '0', '1'];
+    for (var i = 0; i < outgoingEdges.length; i++) {
+        possibleSymbols.splice(possibleSymbols.indexOf(outgoingEdges[i].data('in')), 1);
+    }
+    return possibleSymbols;
+}
 
-    // this is to prevent nondeterminism
-    if (outgoingEdges.length == 3) {
+function createEdge(sourceNode, targetNode) {
+    var symbols = getAvailableSymbols(sourceNode);
+    if (symbols === null || symbols.length === 0) {
         return;
     }
-    var possibleSymbols = [' ', '0', '1'];
-    for (var i = 0; i < outgoingEdges.length; i++) {
-        var idx = possibleSymbols.indexOf(outgoingEdges[i].data('symbol'));
-        possibleSymbols.splice(idx, 1);
-    }
-
-
     var newEdge = cy.add({
-        data: {source: sourceNode.id(), target: targetNode.id(), symbol: possibleSymbols[0], direction: 'L'}
+        data: {source: sourceNode.id(), target: targetNode.id(), in: symbols[0], out: 'x', direction: 'L'}
     });
     setEdgeQtip(newEdge);
     $(".qtip").qtip('hide');
@@ -141,7 +151,7 @@ function createEdge(sourceNode, targetNode) {
 function setNodeQtip(node) {
     var template = $('#qtip-node-template').clone();
     template.find('#node-name').prop('id', 'node-name-' + node.id());
-    template.find('#node-accepting').prop('id', 'node-accepting-' + node.id());
+    template.find('#node-type').prop('id', 'node-type-' + node.id());
     template.find('#delete-node').prop('id', 'delete-node-' + node.id());
     node.qtip({
         content: template.html(),
@@ -161,11 +171,18 @@ function setNodeQtip(node) {
                         node.data()['label'] = this.value;
                         node.toggleClass('foo');
                     });
-                var accepting = node.data('accepting') === 'true';
-                $('#node-accepting-' + id)
-                    .prop('checked', accepting)
+                $('#node-type-' + id)
+                    .val(node.data('type'))
                     .change(function () {
-                        node.data()['accepting'] = this.checked ? 'true' : 'false';
+                        node.data()['type'] = this.value;
+                        if (this.value === 'start' || this.value === 'accept') {
+                            cy.nodes().forEach(function (n) {
+                                if (n.id() !== node.id() && n.data()['type'] === node.data()['type']) {
+                                    n.data()['type'] = 'normal';
+                                    n.toggleClass('foo');
+                                }
+                            });
+                        }
                         node.toggleClass('foo');
                     });
                 $('#delete-node-' + id)
@@ -188,7 +205,8 @@ function setNodeQtip(node) {
 
 function setEdgeQtip(edge) {
     var template = $('#qtip-edge-template').clone();
-    template.find('#edge-symbol').prop('id', 'edge-symbol-' + edge.id());
+    template.find('#edge-input-symbol').prop('id', 'edge-input-symbol-' + edge.id());
+    template.find('#edge-output-symbol').prop('id', 'edge-output-symbol-' + edge.id());
     template.find('#edge-direction').prop('id', 'edge-direction-' + edge.id());
     template.find('#delete-edge').prop('id', 'delete-edge-' + edge.id());
     edge.qtip({
@@ -203,16 +221,27 @@ function setEdgeQtip(edge) {
         events: {
             render: function (event, api) {
                 var id = edge.id();
+                $('#edge-input-symbol-' + id)
+                    .val(edge.data('in'))
+                    .change(function () {
+                        var symbols = getAvailableSymbols(edge.source());
+                        if (symbols.indexOf(this.value) === -1) {
+                            this.value = edge.data('in');
+                        } else {
+                            edge.data()['in'] = this.value;
+                        }
+                        edge.toggleClass('foo');
+                    });
+                $('#edge-output-symbol-' + id)
+                    .val(edge.data('out'))
+                    .change(function () {
+                        edge.data()['out'] = this.value;
+                        edge.toggleClass('foo');
+                    });
                 $('#edge-direction-' + id)
                     .val(edge.data('direction'))
                     .change(function () {
                         edge.data()['direction'] = this.value;
-                        edge.toggleClass('foo');
-                    });
-                $('#edge-symbol-' + id)
-                    .val(edge.data('symbol')) // TODO: prevent nondeterminism here
-                    .change(function () {
-                        edge.data()['symbol'] = this.value;
                         edge.toggleClass('foo');
                     });
                 $('#delete-edge-' + id)
@@ -223,39 +252,50 @@ function setEdgeQtip(edge) {
                     });
             },
             visible: function (event, api) {
-                $('#edge-direction-' + edge.id()).focus();
+                $('#edge-input-symbol-' + edge.id()).focus();
             }
         }
     });
 }
 
 $(document).keydown(function (e) {
-    if (e.keyCode == 13) {
+    if (e.keyCode === 13) {
         $(".qtip").qtip('hide');
     }
 });
 
 var intervalID = -1;
 
-// TODO: disable reset when simulation is running
+// TODO: fix button/machine state correlation
 $('#start-button').click(function () {
-    var timeout = 2000 / $('#speed-controller').val();
-    console.log(timeout);
-    intervalID = setInterval(function () {
-        Simulation.step()
-    }, timeout);
-});
-
-$('#pause-button').click(function () {
-    Simulation.pause();
+    if ($(this).html().indexOf('play') > -1) {
+        var timeout = 2000 / $('#speed-controller').val();
+        intervalID = setInterval(function () {
+            Simulation.step()
+        }, timeout);
+        $('.ctrl').prop('disabled', true);
+        $(this).prop('disabled', false);
+        $(this).html('<span class="glyphicon glyphicon-pause"></span>');
+    } else {
+        Simulation.pause();
+        $('.ctrl').prop('disabled', false);
+        $(this).html('<span class="glyphicon glyphicon-play"></span>');
+    }
+    $(this).blur();
 });
 
 $('#step-button').click(function () {
+    $('.ctrl').prop('disabled', true);
     Simulation.step();
+    setTimeout(function() {
+        $('.ctrl').prop('disabled', false);
+    }, 150);
+    $(this).blur();
 });
 
 $('#reset-button').click(function () {
     Simulation.reset();
+    $(this).blur();
 });
 
 // add initial tape state
@@ -266,7 +306,8 @@ $(window).resize(function () {
 });
 
 for (var i = 0; i < 11; i++) {
-    $('#tape-peek').append('<input id="tape-peek-' + i + '" type="text" size="1">');
+    // TODO: fit this to container width
+    $('#tape-peek').append('<input id="tape-peek-' + i + '" type="text" size="1" disabled>');
 }
 $('#tape-peek-5').css({"border": "2px solid #000000"});
 
@@ -284,12 +325,18 @@ Simulation = {
         read: function () {
             return this.get(this.idx);
         },
+        write: function (value) {
+            return this.set(this.idx, value);
+        },
         get: function (idx) {
             var ret = this.content['' + idx];
             if (ret === null) {
-                return ' ';
+                return '_';
             }
             return ret;
+        },
+        set: function (idx, value) {
+            this.content['' + idx] = value;
         },
         render: function () {
             for (var i = 0; i < 11; i++) {
@@ -299,44 +346,57 @@ Simulation = {
     },
     currNode: null,
     init: function () {
-        // TODO: what to do with simulation when the initial state is deleted?
-        this.currNode = cy.$('#0');
-        this.tape.content = document.getElementById('tape-input').value;
-        this.tape.render();
-    },
+        this.reset();
+        this.currNode = cy.elements('node[type="start"]');
+     },
     step: function () {
-        if (this.currNode == null) {
+        if (this.currNode === null) {
             this.init();
+        } else if (this.currNode.data('type') === 'accept') {
+            this.accept();
+            return;
         } else {
             var outEdges = this.currNode.outgoers('edge');
+            var reject = true;
             for (var i = 0; i < outEdges.length; i++) {
-                if (outEdges[i].data('symbol') === this.tape.read()) {
-                    this.tape.move(outEdges[i].data('direction'));
-                    var nextId = outEdges[i].data('target');
-                    this.currNode = cy.$('#' + nextId);
-                    outEdges[i].toggleClass('foo');
+                var edge = outEdges[i];
+                if (edge.data('in') === this.tape.read()) {
+                    this.tape.write(edge.data('out'));
+                    this.tape.move(edge.data('direction'));
+                    this.currNode = edge.target();
+                    reject = false;
                     break;
                 }
             }
+            if (reject) {
+                this.reject();
+                return;
+            }
         }
-        /// TODO: sometimes during the animation random nodes stay blue forever
         this.tape.render();
         cy.elements().removeClass('highlighted');
         this.currNode.addClass('highlighted');
-
-        /// TODO: when stoped and played again after accepting, machine ignores accepting state and continues further
-        if (this.currNode.data('accepting') === 'true') {
-            $('#accept-message').show();
-            this.pause();
-        }
+    },
+    accept: function () {
+        $('#accept-message').show();
+        this.pause();
+    },
+    reject: function() {
+        $('#accept-message').show();
     },
     reset: function () {
         $('#accept-message').hide();
+        $('#reject-message').hide();
         this.currNode = null;
-        this.tape.idx = 0;
-        this.pause();
         cy.elements().removeClass('highlighted');
         cy.elements().toggleClass('foo');
+        var str = document.getElementById('tape-input').value;
+        this.tape.idx = 0;
+        this.tape.content = {};
+        for (var i = 0; i < str.length; i++) {
+            this.tape.set(i, str[i]);
+        }
+        this.tape.render();
     },
     pause: function () {
         clearInterval(intervalID);
