@@ -83,12 +83,13 @@ cy.on('select', 'edge', function (e) {
     cy.nodes().unselect();
 });
 
+var taphold = false;
 
 cy.on('taphold', 'node', function (e) {
     var node = e.cyTarget;
     createEdge(node, node);
     cy.elements().unselect();
-    // TODO: prevent qtip from appearing here
+    taphold = true;
 });
 
 // create edge when second node is selected
@@ -176,6 +177,10 @@ function setNodeQtip(node) {
             },
             visible: function (event, api) {
                 $('#node-name-' + node.id()).focus();
+                if (taphold) {
+                    taphold = false;
+                    $(".qtip").qtip('hide');
+                }
             }
         }
     });
@@ -205,7 +210,7 @@ function setEdgeQtip(edge) {
                         edge.toggleClass('foo');
                     });
                 $('#edge-symbol-' + id)
-                    .val(edge.data('symbol'))
+                    .val(edge.data('symbol')) // TODO: prevent nondeterminism here
                     .change(function () {
                         edge.data()['symbol'] = this.value;
                         edge.toggleClass('foo');
