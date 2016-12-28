@@ -32,11 +32,11 @@ var cy = cytoscape({
         .css({
             'background-color': '#61bffc',
             'transition-property': 'background-color',
-            'transition-duration': '100'
+            'transition-duration': '50'
         })
         .selector('node[type="start"]')
         .css({
-            'shape': 'triangle'
+            'shape': 'square'
         })
         .selector('node[type="accept"]')
         .css({
@@ -50,23 +50,30 @@ var cy = cytoscape({
 
     elements: {
         nodes: [
-            {data: {id: '0', label: 'q0', type: 'start'}},
-            {data: {id: '1', label: 'q1', type: 'normal'}},
-            {data: {id: '2', label: 'q2', type: 'normal'}},
-            {data: {id: '3', label: 'q3', type: 'normal'}},
-            {data: {id: '4', label: 'q4', type: 'normal'}},
-            {data: {id: '5', label: 'q5', type: 'accept'}},
+            {data: {id: '0', label: 'q1', type: 'start'}},
+            {data: {id: '1', label: 'q2', type: 'normal'}},
+            {data: {id: '2', label: 'q3', type: 'normal'}},
+            {data: {id: '3', label: 'q4', type: 'normal'}},
+            {data: {id: '4', label: 'q5', type: 'normal'}},
+            {data: {id: '5', label: 'acc', type: 'accept'}}
         ],
         edges: [
-            {data: {source: '0', target: '1', in: '0', out: '0', direction: 'R'}},
-            {data: {source: '1', target: '2', in: '0', out: '0', direction: 'R'}},
+            {data: {source: '0', target: '1', in: '0', out: '_', direction: 'R'}},
+            {data: {source: '1', target: '2', in: '0', out: 'x', direction: 'R'}},
+            {data: {source: '2', target: '4', in: '_', out: '_', direction: 'L'}},
+            {data: {source: '2', target: '2', in: 'x', out: 'x', direction: 'R'}},
+            {data: {source: '4', target: '1', in: '_', out: '_', direction: 'R'}},
+            {data: {source: '1', target: '1', in: 'x', out: 'x', direction: 'R'}},
+            {data: {source: '4', target: '4', in: '0', out: '0', direction: 'L'}},
+            {data: {source: '4', target: '4', in: 'x', out: 'x', direction: 'L'}},
+            {data: {source: '1', target: '5', in: '_', out: '_', direction: 'R'}},
             {data: {source: '2', target: '3', in: '0', out: '0', direction: 'R'}},
-            {data: {source: '3', target: '4', in: '0', out: '0', direction: 'R'}},
-            {data: {source: '4', target: '5', in: '0', out: '0', direction: 'R'}}
+            {data: {source: '3', target: '2', in: '0', out: 'x', direction: 'R'}},
+            {data: {source: '3', target: '3', in: 'x', out: 'x', direction: 'R'}}
         ]
     },
     layout: {
-        name: 'grid',
+        name: 'circle',
         padding: 30
     }
 });
@@ -142,7 +149,7 @@ function createEdge(sourceNode, targetNode) {
         return;
     }
     var newEdge = cy.add({
-        data: {source: sourceNode.id(), target: targetNode.id(), in: symbols[0], out: 'x', direction: 'L'}
+        data: {source: sourceNode.id(), target: targetNode.id(), in: symbols[0], out: symbols[0], direction: 'L'}
     });
     setEdgeQtip(newEdge);
     $(".qtip").qtip('hide');
@@ -171,6 +178,7 @@ function setNodeQtip(node) {
                         node.data()['label'] = this.value;
                         node.toggleClass('foo');
                     });
+                // TODO: use text input instead of <select>
                 $('#node-type-' + id)
                     .val(node.data('type'))
                     .change(function () {
@@ -269,7 +277,7 @@ var intervalID = -1;
 // TODO: fix button/machine state correlation
 $('#start-button').click(function () {
     if ($(this).html().indexOf('play') > -1) {
-        var timeout = 2000 / $('#speed-controller').val();
+        var timeout = 1000 / $('#speed-controller').val();
         intervalID = setInterval(function () {
             Simulation.step()
         }, timeout);
@@ -289,11 +297,13 @@ $('#step-button').click(function () {
     Simulation.step();
     setTimeout(function() {
         $('.ctrl').prop('disabled', false);
-    }, 150);
+    }, 100);
     $(this).blur();
 });
 
 $('#reset-button').click(function () {
+    $('.ctrl').prop('disabled', false);
+    $('#start-button').html('<span class="glyphicon glyphicon-play"></span>');
     Simulation.reset();
     $(this).blur();
 });
@@ -330,7 +340,7 @@ Simulation = {
         },
         get: function (idx) {
             var ret = this.content['' + idx];
-            if (ret === null) {
+            if (ret === undefined) {
                 return '_';
             }
             return ret;
@@ -340,6 +350,7 @@ Simulation = {
         },
         render: function () {
             for (var i = 0; i < 11; i++) {
+                // TODO: add return value for each method so that jquery is not used inside Simulation scope
                 $('#tape-peek-' + i).val(this.get(this.idx - 5 + i));
             }
         }
@@ -352,9 +363,6 @@ Simulation = {
     step: function () {
         if (this.currNode === null) {
             this.init();
-        } else if (this.currNode.data('type') === 'accept') {
-            this.accept();
-            return;
         } else {
             var outEdges = this.currNode.outgoers('edge');
             var reject = true;
@@ -376,13 +384,21 @@ Simulation = {
         this.tape.render();
         cy.elements().removeClass('highlighted');
         this.currNode.addClass('highlighted');
+        if (this.currNode.data('type') === 'accept') {
+            this.accept();
+        }
     },
     accept: function () {
         $('#accept-message').show();
+        $('.ctrl').prop('disabled', true);
+        $('#reset-button').prop('disabled', false);
         this.pause();
     },
     reject: function() {
-        $('#accept-message').show();
+        $('#reject-message').show();
+        $('.ctrl').prop('disabled', true);
+        $('#reset-button').prop('disabled', false);
+        this.pause();
     },
     reset: function () {
         $('#accept-message').hide();
